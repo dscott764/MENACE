@@ -86,17 +86,71 @@ class Board:
         return "\n".join(board_lines)
 
 
+class BoardState:
+    """
+    Represents an immutable snapshot of a 3x3 Noughts and Crosses board.
+    The internal representation is a tuple of tuples, ensuring immutability.
+    """
+    def __init__(self, grid=None):
+        if grid is None:
+            # Create a 3x3 grid initialized with Cell.EMPTY
+            self.grid = tuple(tuple(Cell.EMPTY for _ in range(3)) for _ in range(3))
+        else:
+            if len(grid) != 3 or any(len(row) != 3 for row in grid):
+                raise ValueError("Grid must be 3x3")
+            new_grid = []
+            for row in grid:
+                new_row = []
+                for cell in row:
+                    if not isinstance(cell, Cell):
+                        raise ValueError("All elements must be instances of Cell")
+                    new_row.append(cell)
+                new_grid.append(tuple(new_row))
+            self.grid = tuple(new_grid)
+
+    def get_cell(self, row, col):
+        """Retrieve the cell at the specified row and column."""
+        return self.grid[row][col]
+
+    def __getitem__(self, index):
+        """
+        Allow indexing to retrieve entire rows from the board
+        state.
+        """
+        return self.grid[index]
+
+    def __str__(self):
+        """
+        Return a string representation of the board state with
+        horizontal lines.
+        """
+        board_lines = []
+        for i, row in enumerate(self.grid):
+            board_lines.append(" | ".join(cell.value for cell in row))
+            if i < len(self.grid) - 1:
+                board_lines.append("---------")
+        return "\n".join(board_lines)
+
+    def __eq__(self, other):
+        if isinstance(other, BoardState):
+            return self.grid == other.grid
+        return False
+
+    def __hash__(self):
+        return hash(self.grid)
+
+
 def main():
     # Create a new board with all cells initialized to EMPTY.
     board = Board()
 
     # For demonstration, let's mark a few cells:
     # Set the top-left cell to X.
-    #board.set_cell(0, 0, Cell.X)
+    board.set_cell(0, 0, Cell.X)
     # Set the center cell to O.
-    #board.set_cell(1, 1, Cell.O)
+    board.set_cell(1, 1, Cell.O)
     # Set the bottom-right cell to X.
-    #board.set_cell(2, 2, Cell.X)
+    board.set_cell(2, 2, Cell.X)
 
     # Print the board's current state.
     print("Board Representation:")
