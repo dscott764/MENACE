@@ -12,8 +12,7 @@ Usage:
     - Run the module to start a simulation of Noughts and Crosses
       games.
 """
-
-
+import random
 from enum import Enum
 
 
@@ -247,22 +246,153 @@ class Matchbox:
         return f"Matchbox for board state:\n{self.board_state}\nBeads: {moves_str}"
 
 
+def check_winner(board):
+    """
+    Check the board for a winner.
+    Returns:
+      - 'MENACE' if MENACE (playing as O) wins,
+      - 'opponent' if the opponent (playing as X) wins,
+      - 'draw' if the board is full with no winner,
+      - None if the game is still in progress.
+    """
+    lines = []
+    grid = board.grid
+    # rows
+    lines.extend(grid)
+    # columns
+    lines.extend([[grid[r][c] for r in range(3)] for c in range(3)])
+    # diagonals
+    lines.append([grid[i][i] for i in range(3)])
+    lines.append([grid[i][2 - i] for i in range(3)])
+    
+    for line in lines:
+        if all(cell == Cell.O for cell in line):
+            return 'MENACE'
+        if all(cell == Cell.X for cell in line):
+            return 'opponent'
+    # Check for draw (no empty cells left)
+    if all(cell != Cell.EMPTY for row in grid for cell in row):
+        return 'draw'
+    return None
+
+
+class MENACEEngine:
+    """
+    MENACEEngine simulates Donald Michie's MENACE learning algorithm 
+    for playing Noughts and Crosses using a matchbox-based
+    reinforcement learning approach.
+    """
+    def __init__(self, initial_bead_count=3):
+        # Map BoardState -> Matchbox
+        self.matchboxes = {}
+        self.initial_bead_count = initial_bead_count
+        # History of moves made during the current game: list of
+        # (matchbox, move)
+        self.game_history = []
+        
+    def get_matchbox(self, board_state):
+        """
+        Retrieve the matchbox for a given board state. If it doesn't
+        exist, create it.
+        """
+        if board_state not in self.matchboxes:
+            self.matchboxes[board_state] = Matchbox(
+                board_state, self.initial_bead_count)
+        return self.matchboxes[board_state]
+    
+    def choose_move(self, board_state):
+        """
+        Choose a move based on the beads in the matchbox corresponding
+        to the given board state.
+        """
+        matchbox = self.get_matchbox(board_state)
+        if not matchbox.beads:
+            raise ValueError("No legal moves available in matchbox")
+        selected_bead = random.choice(matchbox.beads)
+        # Record the matchbox and move so we can adjust later
+        self.game_history.append((matchbox, selected_bead.move))
+        return selected_bead.move
+    
+    def update_learning(self, outcome):
+        """
+        Update the matchboxes based on the outcome of the game.
+        
+        Outcome is:
+          1 for win,
+          0 for draw,
+         -1 for loss.
+        
+        Update strategy:
+          - If win, add a bead to each matchbox used.
+          - If loss, remove a bead from each matchbox used (if
+            possible).
+          - For a draw, make no changes.
+        """
+        for matchbox, move in self.game_history:
+            if outcome == 1:
+                matchbox.add_beads(move, count=1)
+            elif outcome == -1:
+                # Remove a bead if there's more than one (to avoid
+                # removing all moves)
+                if matchbox.get_bead_count(move) > 1:
+                    matchbox.remove_beads(move, count=1)
+        self.game_history = []  # Clear history after learning
+    
+    def play_game(self, opponent_move_func):
+        """
+        Simulate a game between MENACE and an opponent.
+        
+        The opponent_move_func is a function that takes a Board object
+        and returns a move (row, col). For simplicity, MENACE plays as
+        'O' and the opponent as 'X'.
+        """
+        board = Board()
+        current_player = 'MENACE'
+        self.game_history = []  # Reset history at the start of the
+                                # game
+        
+        while True:
+            board_state = BoardState(board.grid)
+            if current_player == 'MENACE':
+                move = self.choose_move(board_state)
+                board.set_cell(move[0], move[1], Cell.O)
+            else:
+                move = opponent_move_func(board)
+                board.set_cell(move[0], move[1], Cell.X)
+            
+            print(board)
+            print()
+            
+            result = check_winner(board)
+            if result:
+                if result == 'MENACE':
+                    self.update_learning(1)
+                elif result == 'opponent':
+                    self.update_learning(-1)
+                else:
+                    self.update_learning(0)
+                return result
+            
+            # Alternate turns
+            current_player = ('opponent' if current_player == 'MENACE' 
+                              else 'MENACE')
+
+
+def random_opponent_move(board):
+    """
+    Simple opponent strategy: randomly select one of the available
+    legal moves.
+    """
+    legal_moves = [(r, c) for r in range(3) for c in range(3) 
+                   if board.get_cell(r, c) == Cell.EMPTY]
+    return random.choice(legal_moves)
+
+
 def main():
-    # Create a new board with all cells initialized to EMPTY.
-    board = Board()
+    engine = MENACEEngine(initial_bead_count=3)
+    result = engine.play_game(random_opponent_move)
+    print("Winner:", result)
 
-    # For demonstration, let's mark a few cells:
-    # Set the top-left cell to X.
-    board.set_cell(0, 0, Cell.X)
-    # Set the center cell to O.
-    board.set_cell(1, 1, Cell.O)
-    # Set the bottom-right cell to X.
-    board.set_cell(2, 2, Cell.X)
-
-    # Print the board's current state.
-    print("Board Representation:")
-    print(board)
-    print(board[2][2].value)
 
 if __name__ == '__main__':
     main()
