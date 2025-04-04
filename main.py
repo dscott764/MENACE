@@ -344,16 +344,19 @@ def generate_all_matchboxes(initial_bead_count=3):
     matchboxes = {}
 
     def generate_states(board, player):
-        canonical_grid = canonical_board_state(board)
-        board_state = BoardState(canonical_grid)
-        # It's MENACE's turn (O) when the counts of O and X are equal.
-        if count_cell(board, Cell.O) == count_cell(board, Cell.X):
-            if board_state not in matchboxes:
-                matchboxes[board_state] = Matchbox(
-                    board_state, initial_bead_count)
-        # If the game is over, stop recursing.
+        # First, if the game is over, stop recursing.
         if check_winner(Board(board)) is not None:
             return
+
+        # Only add board states where it's MENACE's turn (O)
+        # and the game is still in progress, and there are fewer than 8 moves.
+        if (count_cell(board, Cell.O) == count_cell(board, Cell.X) and
+                (count_cell(board, Cell.O) + count_cell(board, Cell.X) < 8)):
+            canonical_grid = canonical_board_state(board)
+            board_state = BoardState(canonical_grid)
+            if board_state not in matchboxes:
+                matchboxes[board_state] = Matchbox(board_state, initial_bead_count)
+        
         # Try all legal moves.
         for r in range(3):
             for c in range(3):
@@ -377,6 +380,7 @@ class MENACEEngine:
     """
     def __init__(self, initial_bead_count=3):
         # Map BoardState -> Matchbox
+        print("Generating matchboxes...")
         self.matchboxes = generate_all_matchboxes(initial_bead_count)
         print("Number of matchboxes: " + str(len(self.matchboxes)))
         self.initial_bead_count = initial_bead_count
