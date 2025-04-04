@@ -31,13 +31,14 @@ MENACE is a Python simulation of Donald Michie's innovative matchbox-based reinf
 You’ll be prompted to enter the number of games to simulate. The program will then run the specified number of games between MENACE (playing as O) and a random opponent (playing as X), displaying the game outcomes and statistics at the end.
 
 ## How It Works
-	1.	Board & Game Setup:
+
+1. Board & Game Setup:
 The board is represented as a 3x3 grid. MENACE uses a matchbox for each unique board state where it is its turn to play.
-	2.	Move Selection:
+2. Move Selection:
 For every legal move (i.e., moves into empty cells), the corresponding matchbox contains a number of beads. MENACE selects a move at random from these beads.
-	3.	Learning Mechanism:
-	•	Win: Add a bead to reinforce the winning move.
-	•	Loss: Remove a bead to discourage the move (ensuring at least one bead remains).
-	•	Draw: No changes are made.
-	4.	Symmetry Reduction:
+3. Learning Mechanism:
+* Win: Add a bead to reinforce the winning move.
+* Loss: Remove a bead to discourage the move (ensuring at least one bead remains).
+* Draw: No changes are made.
+4. Symmetry Reduction:
 To avoid redundant matchboxes, the board state is transformed into its canonical form using rotations and reflections.
