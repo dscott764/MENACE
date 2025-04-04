@@ -276,6 +276,51 @@ def check_winner(board):
     return None
 
 
+def count_cell(board, cell):
+    """
+    Count the number of times a particular cell (Cell.EMPTY, Cell.O,
+    or Cell.X) appears in the board.
+    """
+    return sum(row.count(cell) for row in board)
+
+
+def generate_all_matchboxes(initial_bead_count=3):
+    """
+    Generate a dictionary of all matchboxes for legal board states
+    where it's MENACE's turn. A legal board state for MENACE (playing
+    as O) is one where the number of O's equals the number of X's, and
+    the game is not already over.
+    
+    Returns:
+        dict: A mapping from BoardState to its corresponding Matchbox.
+    """
+    matchboxes = {}
+
+    def generate_states(board, player):
+        board_state = BoardState(board)
+        # It's MENACE's turn (O) when the counts of O and X are equal.
+        if count_cell(board, Cell.O) == count_cell(board, Cell.X):
+            if board_state not in matchboxes:
+                matchboxes[board_state] = Matchbox(
+                    board_state, initial_bead_count)
+        # If the game is over, stop recursing.
+        if check_winner(Board(board)) is not None:
+            return
+        # Try all legal moves.
+        for r in range(3):
+            for c in range(3):
+                if board[r][c] == Cell.EMPTY:
+                    board[r][c] = player
+                    next_player = Cell.X if player == Cell.O else Cell.O
+                    generate_states(board, next_player)
+                    board[r][c] = Cell.EMPTY
+
+    # Start with an empty board.
+    board = [[Cell.EMPTY for _ in range(3)] for _ in range(3)]
+    generate_states(board, Cell.O)
+    return matchboxes
+
+
 class MENACEEngine:
     """
     MENACEEngine simulates Donald Michie's MENACE learning algorithm 
@@ -284,7 +329,7 @@ class MENACEEngine:
     """
     def __init__(self, initial_bead_count=3):
         # Map BoardState -> Matchbox
-        self.matchboxes = {}
+        self.matchboxes = generate_all_matchboxes(initial_bead_count)
         self.initial_bead_count = initial_bead_count
         # History of moves made during the current game: list of
         # (matchbox, move)
