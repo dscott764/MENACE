@@ -436,7 +436,7 @@ class MENACEEngine:
                     matchbox.remove_beads(move, count=1)
         self.game_history = []  # Clear history after learning
     
-    def play_game(self, opponent_move_func):
+    def play_game(self, opponent_move_func, verbose=True):
         """
         Simulate a game between MENACE and an opponent.
         
@@ -458,8 +458,9 @@ class MENACEEngine:
                 move = opponent_move_func(board)
                 board.set_cell(move[0], move[1], Cell.X)
             
-            print(board)
-            print()
+            if verbose:
+                print(board)
+                print()
             
             result = check_winner(board)
             if result:
@@ -487,9 +488,25 @@ def random_opponent_move(board):
 
 
 def main():
+    try:
+        runs = int(input("Enter the number of games to simulate: "))
+    except ValueError:
+        print("Invalid input. Please enter an integer.")
+        return
+
     engine = MENACEEngine(initial_bead_count=3)
-    result = engine.play_game(random_opponent_move)
-    print("Winner:", result)
+    results = {'MENACE': 0, 'opponent': 0, 'draw': 0}
+
+    for i in range(runs):
+        result = engine.play_game(random_opponent_move, verbose=False)
+        results[result] += 1
+
+    print("\nSimulation complete!")
+    print(f"Total games: {runs}")
+    print(f"MENACE wins: {results['MENACE']}")
+    print(f"Opponent wins: {results['opponent']}")
+    print(f"Draws: {results['draw']}")
+    print(f"Percentage of opponent wins: {results['opponent']/runs*100}")
 
 
 if __name__ == '__main__':
