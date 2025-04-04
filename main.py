@@ -284,6 +284,53 @@ def count_cell(board, cell):
     return sum(row.count(cell) for row in board)
 
 
+def canonical_board_state(grid):
+    """
+    Given a board grid (tuple of tuples), generate all 8 symmetric
+    transformations (rotations and reflections) and return the
+    canonical (lexicographically smallest) form.
+    """
+    def to_list(g):
+        return [list(row) for row in g]
+
+    def to_tuple(g):
+        return tuple(tuple(row) for row in g)
+
+    def rotate(g):
+        # Rotate the board 90 degrees clockwise.
+        # zip(*g[::-1]) produces tuples for each row, so convert to
+        # list.
+        return to_list(list(zip(*g[::-1])))
+
+    def reflect_horizontal(g):
+        # Reflect the board horizontally (reverse each row).
+        return [row[::-1] for row in g]
+
+    # Work with a mutable copy for transformations.
+    grids = []
+    g0 = to_list(grid)  # original as a list of lists
+
+    # 4 rotations: 0°, 90°, 180°, 270°
+    rot0 = g0
+    rot90 = rotate(rot0)
+    rot180 = rotate(rot90)
+    rot270 = rotate(rot180)
+
+    # Collect the rotated boards.
+    for g in [rot0, rot90, rot180, rot270]:
+        grids.append(to_tuple(g))
+        # Also add the horizontal reflection of each rotation.
+        grids.append(to_tuple(reflect_horizontal(g)))
+    
+    # Now pick the lexicographically smallest representation.
+    # (This works because the board is a tuple of tuples of Cell
+    # enums. They are compared based on their values, which are
+    # strings.)
+    return min(
+        grids,
+        key=lambda g: tuple(tuple(cell.value for cell in row) for row in g))
+
+
 def generate_all_matchboxes(initial_bead_count=3):
     """
     Generate a dictionary of all matchboxes for legal board states
@@ -297,7 +344,8 @@ def generate_all_matchboxes(initial_bead_count=3):
     matchboxes = {}
 
     def generate_states(board, player):
-        board_state = BoardState(board)
+        canonical_grid = canonical_board_state(board)
+        board_state = BoardState(canonical_grid)
         # It's MENACE's turn (O) when the counts of O and X are equal.
         if count_cell(board, Cell.O) == count_cell(board, Cell.X):
             if board_state not in matchboxes:
@@ -330,6 +378,7 @@ class MENACEEngine:
     def __init__(self, initial_bead_count=3):
         # Map BoardState -> Matchbox
         self.matchboxes = generate_all_matchboxes(initial_bead_count)
+        print("Number of matchboxes: " + str(len(self.matchboxes)))
         self.initial_bead_count = initial_bead_count
         # History of moves made during the current game: list of
         # (matchbox, move)
