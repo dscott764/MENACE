@@ -75,8 +75,7 @@ class Board:
 
     def __str__(self):
         """
-        Return a string representation of the board with horizontal
-        lines.
+        Return a string representation of the board.
         """
         board_lines = []
         for i, row in enumerate(self.grid):
@@ -121,8 +120,7 @@ class BoardState:
 
     def __str__(self):
         """
-        Return a string representation of the board state with
-        horizontal lines.
+        Return a string representation of the board state.
         """
         board_lines = []
         for i, row in enumerate(self.grid):
@@ -140,6 +138,115 @@ class BoardState:
         return hash(self.grid)
 
 
+class Bead:
+    """
+    Represents a single bead corresponding to a move in MENACE.
+
+    Attributes:
+        move (tuple): A tuple (row, col) indicating the move this bead
+                      represents.
+    """
+    def __init__(self, move):
+        if not (isinstance(move, tuple) and len(move) == 2):
+            raise ValueError("Move must be a tuple of (row, col)")
+        self.move = move
+
+    def __str__(self):
+        return f"Bead(move={self.move})"
+
+    def __repr__(self):
+        return str(self)
+
+
+class Matchbox:
+    """
+    Represents a matchbox in MENACE, containing a BoardState and a
+    collection of beads corresponding to legal moves from that state.
+
+    The matchbox is associated with a specific board state and holds
+    beads for every legal move (i.e., moves into empty cells). The
+    weight of a move is determined by the number of beads representing
+    that move.
+    """
+    def __init__(self, board_state, initial_bead_count=3):
+        if not isinstance(board_state, BoardState):
+            raise ValueError("board_state must be an instance of BoardState")
+        self.board_state = board_state
+        self.beads = []
+        
+        # Determine legal moves: iterate over all cells and check for
+        # emptiness.
+        for row in range(3):
+            for col in range(3):
+                if board_state.get_cell(row, col) == Cell.EMPTY:
+                    # Add initial_bead_count beads for each legal
+                    # move.
+                    for _ in range(initial_bead_count):
+                        self.beads.append(Bead((row, col)))
+                        
+    def add_beads(self, move, count=1):
+        """
+        Add a specified number of beads corresponding to the given
+        move.
+        
+        Args:
+            move (tuple): A tuple (row, col) representing the move.
+            count (int): The number of beads to add.
+        """
+        # Check if the move is legal in the board state.
+        if self.board_state.get_cell(*move) != Cell.EMPTY:
+            raise ValueError("Move is not legal in this board state")
+        for _ in range(count):
+            self.beads.append(Bead(move))
+    
+    def remove_beads(self, move, count=1):
+        """
+        Remove up to a specified number of beads for the given move by
+        going over the beads and skipping the ones to be removed.
+        
+        If fewer than count beads exist for that move, remove all of
+        them.
+        
+        Args:
+            move (tuple): A tuple (row, col) representing the move.
+            count (int): The maximum number of beads to remove.
+        """
+        removed = 0
+        new_beads = []
+        for bead in self.beads:
+            if removed < count and bead.move == move:
+                removed += 1
+            else:
+                new_beads.append(bead)
+        self.beads = new_beads
+    
+    def get_bead_count(self, move):
+        """
+        Return the number of beads corresponding to the given move.
+        
+        Args:
+            move (tuple): A tuple (row, col) representing the move.
+            
+        Returns:
+            int: The number of beads for that move.
+        """
+        return sum(1 for bead in self.beads if bead.move == move)
+    
+    def __str__(self):
+        """
+        Return a string representation of the matchbox, including the
+        board state
+        and the counts of beads per move.
+        """
+        # Group the beads by move and count them.
+        move_counts = {}
+        for bead in self.beads:
+            move_counts[bead.move] = move_counts.get(bead.move, 0) + 1
+        moves_str = ', '.join(
+            f"{move}: {count}" for move, count in move_counts.items())
+        return f"Matchbox for board state:\n{self.board_state}\nBeads: {moves_str}"
+
+
 def main():
     # Create a new board with all cells initialized to EMPTY.
     board = Board()
@@ -155,6 +262,7 @@ def main():
     # Print the board's current state.
     print("Board Representation:")
     print(board)
+    print(board[2][2].value)
 
 if __name__ == '__main__':
     main()
